@@ -126,7 +126,12 @@ ssize_t sys_llistxattr(const char *path, char *list, size_t size)
 	unsigned char keylen;
 	ssize_t off, len = extattr_list_link(path, EXTATTR_NAMESPACE_USER, list, size);
 
-	if (len <= 0 || (size_t)len > size)
+	if ((size_t)len >= size) {
+		errno = ERANGE;
+		return -1;
+	}
+	
+	if (len <= 0)
 		return len;
 
 	/* FreeBSD puts a single-byte length before each string, with no '\0'
@@ -136,7 +141,7 @@ ssize_t sys_llistxattr(const char *path, char *list, size_t size)
 	for (off = 0; off < len; off += keylen + 1) {
 		keylen = ((unsigned char*)list)[off];
 		if (off + keylen >= len) {
-			/* Should be impossible, but kernel bugs happen! */
+			/* Should be impossible, but bugs happen! */
 			errno = EINVAL;
 			return -1;
 		}
